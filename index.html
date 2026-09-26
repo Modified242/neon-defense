@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Defense</title>
+    <meta name="description" content="A custom 2D tower defense game with modern neon aesthetics." />
+    <link rel="stylesheet" href="./style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="game-container">
+      <header class="game-header glass-panel">
+        <div class="stats">
+          <div class="stat-box"><span class="label">Lives</span> <span id="lives-display">50</span></div>
+          <div class="stat-box"><span class="label">Credits</span> <span id="credits-display">300</span></div>
+          <div class="stat-box"><span class="label">Wave</span> <span id="wave-display">1</span></div>
+          <button id="fullscreen-btn" class="glow-btn" style="padding: 6px 12px; font-size: 0.8rem; margin-left: 10px;">⛶ Fullscreen</button>
+        </div>
+        <h1 class="title">NEON DEFENSE</h1>
+        <button id="start-wave-btn" class="glow-btn">Start Wave</button>
+      </header>
+
+      <main class="game-area">
+          <div class="canvas-container">
+            <canvas id="game-canvas" width="800" height="600"></canvas>
+            
+            <div id="level-select-screen" class="glass-panel">
+                <h2>SELECT SECTOR</h2>
+                <div id="level-buttons" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
+                    <!-- JS will populate these -->
+                </div>
+            </div>
+
+            <div id="game-over-screen" class="hidden glass-panel">
+                <h2>SYSTEM FAILURE</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button id="restart-btn" class="glow-btn">Reboot System</button>
+                    <button id="fail-menu-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b);">Menu</button>
+                </div>
+            </div>
+            <div id="victory-screen" class="hidden glass-panel">
+                <h2>DEFENSE SUCCESSFUL</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button id="next-level-btn" class="glow-btn">Next Level</button>
+                    <button id="win-menu-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b);">Menu</button>
+                </div>
+            </div>
+        </div>
+        <aside class="tower-menu glass-panel">
+          <div id="build-menu">
+            <h2>Towers</h2>
+            <div class="tower-list">
+              <button class="tower-btn" data-type="basic" data-cost="50">
+                <div class="tower-icon basic-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Pulse Blaster</span>
+                  <span class="tower-cost">50 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="sniper" data-cost="100">
+                <div class="tower-icon sniper-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Railgun (Sniper)</span>
+                  <span class="tower-cost">100 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="rapid" data-cost="150">
+                <div class="tower-icon rapid-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Plasma Repeater</span>
+                  <span class="tower-cost">150 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="frost" data-cost="120">
+                <div class="tower-icon frost-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Cryo Emitter</span>
+                  <span class="tower-cost">120 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="blast" data-cost="200">
+                <div class="tower-icon blast-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Photon Mortar</span>
+                  <span class="tower-cost">200 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="generator" data-cost="150">
+                <div class="tower-icon generator-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Credit Fabricator</span>
+                  <span class="tower-cost">150 ¢</span>
+                </div>
+              </button>
+            </div>
+            <div class="instructions">
+              <p>Select a tower and click on the grid to place it.</p>
+              <p>Don't let the neon shapes reach the end!</p>
+            </div>
+          </div>
+
+          <div id="upgrade-menu" class="hidden" style="display: flex; flex-direction: column; gap: 15px; height: 100%;">
+            <h2>Tower Mgmt</h2>
+            <div id="selected-tower-stats" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; flex-grow: 1;">
+               <!-- Stats populated by JS -->
+            </div>
+            <button id="upgrade-btn" class="glow-btn">Upgrade (<span id="upgrade-cost">--</span>¢)</button>
+            <button id="sell-btn" class="glow-btn" style="background: linear-gradient(135deg, #ef4444, #991b1b); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">Sell (<span id="sell-price">--</span>¢)</button>
+            <button id="close-upgrade-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b); box-shadow: none;">Back</button>
+          </div>
+        </aside>
+      </main>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>
