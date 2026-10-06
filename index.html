@@ -105,6 +105,15 @@
             <div id="selected-tower-stats" style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px; flex-grow: 1;">
                <!-- Stats populated by JS -->
             </div>
+            <div id="targeting-controls" style="margin-bottom: 10px;">
+              <label for="targeting-mode" style="display: block; margin-bottom: 5px; font-weight: bold; color: #cbd5e1;">Targeting:</label>
+              <select id="targeting-mode" style="width: 100%; padding: 8px; background: rgba(0,0,0,0.5); color: #fff; border: 1px solid #3b82f6; border-radius: 4px; outline: none; cursor: pointer;">
+                <option value="first">First (Closest to Core)</option>
+                <option value="strong">Strong (Highest HP)</option>
+                <option value="weak">Weak (Lowest HP)</option>
+                <option value="close">Close (Nearest to Tower)</option>
+              </select>
+            </div>
             <button id="upgrade-btn" class="glow-btn">Upgrade (<span id="upgrade-cost">--</span>¢)</button>
             <button id="sell-btn" class="glow-btn" style="background: linear-gradient(135deg, #ef4444, #991b1b); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);">Sell (<span id="sell-price">--</span>¢)</button>
             <button id="close-upgrade-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b); box-shadow: none;">Back</button>
