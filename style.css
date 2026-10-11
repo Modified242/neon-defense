@@ -64,6 +64,7 @@ body {
   font-weight: 800;
   background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   text-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
   margin: 0;
@@ -120,6 +121,20 @@ body {
   transform: translateY(0);
 }
 
+.glow-btn.small-btn {
+  padding: 6px 12px;
+  font-size: 0.9rem;
+}
+.glow-btn.paused {
+  background: linear-gradient(135deg, #ef4444, #f59e0b);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+.glow-btn.active-speed {
+  background: linear-gradient(135deg, #10b981, #0ea5e9);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
 .game-area {
   display: flex;
   gap: 20px;
@@ -161,23 +176,24 @@ body {
 }
 
 .tower-list {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .tower-btn {
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: 12px;
-  padding: 16px;
+  padding: 10px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 8px;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   color: var(--text-primary);
-  text-align: left;
+  text-align: center;
 }
 
 .tower-btn:hover {
@@ -210,17 +226,21 @@ body {
 .rapid-icon { background: var(--tower-rapid); box-shadow: 0 0 15px var(--tower-rapid); border-radius: 50%; }
 .frost-icon { background: var(--tower-frost); box-shadow: 0 0 15px var(--tower-frost); clip-path: polygon(50% 0%, 100% 100%, 0% 100%); border-radius: 0; border: none; }
 .blast-icon { background: var(--tower-blast); box-shadow: 0 0 15px var(--tower-blast); clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); border-radius: 0; border: none; }
+.laser-icon { background: #a855f7; box-shadow: 0 0 15px #a855f7; clip-path: polygon(50% 0%, 100% 38%, 81% 100%, 19% 100%, 0% 38%); border-radius: 0; border: none; }
+.support-icon { background: #ec4899; box-shadow: 0 0 15px #ec4899; clip-path: polygon(33% 0, 66% 0, 66% 33%, 100% 33%, 100% 66%, 66% 66%, 66% 100%, 33% 100%, 33% 66%, 0 66%, 0 33%, 33% 33%); border-radius: 0; border: none; }
 .generator-icon { background: var(--tower-generator); box-shadow: 0 0 15px var(--tower-generator); clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); border-radius: 0; border: none; }
 
 .tower-info {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
 }
 
 .tower-name {
   font-weight: 600;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
+  line-height: 1.1;
 }
 
 .tower-cost {
@@ -239,7 +259,7 @@ body {
     border-radius: 8px;
 }
 
-#game-over-screen, #victory-screen, #level-select-screen {
+#game-over-screen, #victory-screen, #level-select-screen, #tech-tree-screen {
   position: absolute;
   inset: 0;
   display: flex;
@@ -281,6 +301,51 @@ body {
     color: rgba(255, 255, 255, 0.3);
     cursor: not-allowed;
     background: rgba(0, 0, 0, 0.5);
+}
+
+.level-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: stretch;
+}
+
+.endless-level-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 16px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #6ee7b7;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.5);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+}
+.endless-level-btn:hover {
+    background: rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 18px rgba(16, 185, 129, 0.45);
+    transform: translateY(-2px);
+}
+.endless-best {
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: var(--text-secondary);
+    letter-spacing: 0.5px;
+    text-transform: none;
+}
+
+.overlay-detail {
+    margin-top: -14px;
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
 }
 
 #game-over-screen h2 {

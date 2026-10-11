@@ -3,7 +3,7 @@
 import {
     TOWER_SPECS, LEVELS, PATH_WIDTH, CANVAS_W, CANVAS_H, TOWER_RADIUS, FRAME_MS, MAX_DT,
     STARTING_LIVES, STARTING_CREDITS, SELL_REFUND, MAX_TOWER_LEVEL, UPGRADE, CLICK, FROST_COLOR,
-    waveClearBonus,
+    waveClearBonus, ENDLESS, BOSS_MINIONS, BOSS_LEAK_COST,
 } from './config.js';
 
 const MAX_PARTICLES = 500;
@@ -64,6 +64,9 @@ export class Tower {
         this.projSpeed = s.projSpeed;
         this.splashRadius = s.splashRadius || 0;
         this.isFrost = !!s.isFrost;
+        this.isLaser = !!s.isLaser;
+        this.isSupport = !!s.isSupport;
+        this.fireRateBuff = s.fireRateBuff || 0;
         this.slowFactor = s.slowFactor || 1;
         this.slowDuration = s.slowDuration || 0;
         this.isGenerator = !!s.isGenerator;
@@ -73,6 +76,10 @@ export class Tower {
         this.cooldown = 0;
         this.angle = -Math.PI / 2;
         this.targetingMode = 'first'; // 'first', 'strong', 'weak', 'close'
+        this.recoil = 0;
+        this.isFiring = false;
+        this.laserTarget = null;
+        this.game = null;
     }
 
     get isMaxLevel() { return this.level >= MAX_TOWER_LEVEL; }
@@ -84,12 +91,28 @@ export class Tower {
 
     get sellValue() { return Math.floor(this.totalSpent * SELL_REFUND); }
 
-    get dps() { return this.fireRate > 0 ? this.damage * 1000 / this.fireRate : 0; }
+    get effectiveFireRate() {
+        if (!this.game || this.isSupport || this.isGenerator) return this.fireRate;
+        let buff = 0;
+        for (const t of this.game.towers) {
+            if (t.isSupport && dist(this.x, this.y, t.x, t.y) <= t.range) {
+                buff += t.fireRateBuff;
+            }
+        }
+        return this.fireRate / (1 + buff);
+    }
+
+    get dps() { return this.effectiveFireRate > 0 ? this.damage * 1000 / this.effectiveFireRate : 0; }
 
     applyUpgrade() {
         this.level++;
         if (this.isGenerator) {
             this.genAmount = Math.round(this.genAmount * UPGRADE.genAmount);
+            return;
+        }
+        if (this.isSupport) {
+            this.fireRateBuff += UPGRADE.supportBuff;
+            this.range *= UPGRADE.range;
             return;
         }
         this.damage *= UPGRADE.damage;
@@ -121,20 +144,44 @@ export class Tower {
     }
 
     update(dt, game) {
+        if (this.isSupport) {
+            this.angle += 0.01 * (dt / FRAME_MS);
+            return;
+        }
         if (this.isGenerator) {
             this.angle += 0.02 * (dt / FRAME_MS);
             return;
         }
+        
+        if (this.recoil > 0) this.recoil = Math.max(0, this.recoil - dt / 150);
         this.cooldown -= dt;
+        
         const target = this.pickTarget(game.enemies);
+        this.isFiring = false;
+        this.laserTarget = null;
+        
         if (!target) {
             if (this.cooldown < 0) this.cooldown = 0; // don't bank shots while idle
             return;
         }
+        
         this.angle = Math.atan2(target.y - this.y, target.x - this.x);
+        
+        if (this.isLaser) {
+            this.isFiring = true;
+            this.laserTarget = target;
+            if (this.cooldown <= 0) {
+                this.cooldown += this.effectiveFireRate;
+                game.damageEnemy(target, this.damage);
+                game.addParticles(target.x, target.y, this.color, 1);
+            }
+            return;
+        }
+        
         if (this.cooldown <= 0) {
-            this.cooldown += this.fireRate; // keep remainder so fire rate isn't quantized to frames
+            this.cooldown += this.effectiveFireRate; // keep remainder so fire rate isn't quantized to frames
             game.projectiles.push(new Projectile(this, target));
+            this.recoil = 1;
             game.emit('sound', 'shoot', this.type);
         }
     }
@@ -148,7 +195,7 @@ export class Enemy {
         this.reward = waveData.reward;
         this.baseColor = waveData.color;
         this.type = waveData.type || 'normal';
-        this.size = this.type === 'tank' ? 16 : this.type === 'swarm' ? 8 : 12;
+        this.size = this.type === 'boss' ? 26 : this.type === 'tank' ? 16 : this.type === 'swarm' ? 8 : 12;
         this.distance = 0;
         this.seg = 0;
         this.slowTimer = 0;
@@ -249,12 +296,13 @@ export class Projectile {
 }
 
 export class Game {
-    constructor(levelIndex, { effects = true } = {}) {
+    constructor(levelIndex, { effects = true, endless = false } = {}) {
         this.levelIndex = levelIndex;
         this.level = LEVELS[levelIndex];
         this.path = new Path(this.level.path);
         this.waves = this.level.waves;
         this.effects = effects;
+        this.endless = endless;
 
         this.lives = STARTING_LIVES;
         this.credits = STARTING_CREDITS;
@@ -298,6 +346,7 @@ export class Game {
         if (this.isOver || !spec || this.credits < spec.cost || !this.canPlace(x, y)) return null;
         this.credits -= spec.cost;
         const tower = new Tower(type, x, y);
+        tower.game = this;
         this.towers.push(tower);
         this.addParticles(x, y, spec.color, 15);
         this.dirty = true;
@@ -329,10 +378,45 @@ export class Game {
         return this.towers.find(t => dist(x, y, t.x, t.y) < TOWER_RADIUS) || null;
     }
 
+    /** Keep playing past the last scripted wave (from the victory screen). */
+    continueEndless() {
+        if (this.state !== 'won') return false;
+        this.endless = true;
+        this.state = 'building';
+        this.dirty = true;
+        return true;
+    }
+
+    /** Procedural wave N (0-based) past the scripted ones. Scales off the sector's own final waves. */
+    endlessWave(n) {
+        const scripted = this.waves.filter(w => w.type !== 'boss');
+        const last = scripted[scripted.length - 1];
+        const hpScale = ENDLESS.hpBase * ENDLESS.hpGrowth ** n;
+        if (n % ENDLESS.bossEvery === ENDLESS.bossEvery - 1) {
+            const boss = this.waves.find(w => w.type === 'boss') || last;
+            return { ...boss, count: 1, hp: Math.round(boss.hp * hpScale * ENDLESS.bossHpMult), reward: Math.round(boss.reward * 1.2) };
+        }
+        // Cycle through the sector's enemy archetypes (skipping boss slots) so every type keeps showing up.
+        const template = scripted[(n - Math.floor((n + 1) / ENDLESS.bossEvery)) % scripted.length];
+        const pressure = 1 + n * ENDLESS.countGrowth;
+        return {
+            ...template,
+            count: Math.round(template.count * pressure),
+            hp: Math.round(template.hp * (last.hp / template.hp) ** 0.35 * hpScale),
+            speed: Math.min(template.speed * (1 + n * 0.01), template.speed + 0.8),
+            spawnRate: Math.max(Math.round(template.spawnRate / Math.sqrt(pressure)), 180),
+            reward: Math.round(template.reward * (1 + n * ENDLESS.rewardGrowth)),
+        };
+    }
+
     startWave() {
-        if (this.state !== 'building' || this.wave >= this.waves.length) return false;
+        if (this.state !== 'building') return false;
+
+        this.waveData = this.wave < this.waves.length
+            ? this.waves[this.wave]
+            : this.endlessWave(this.wave - this.waves.length);
+
         this.wave++;
-        this.waveData = this.waves[this.wave - 1];
         this.spawned = 0;
         this.spawnTimer = 0; // first enemy spawns immediately
         this.state = 'wave';
@@ -373,19 +457,33 @@ export class Game {
     damageEnemy(e, amount) {
         if (!e.alive) return;
         e.hp -= amount;
+        this.addText(e.x + (Math.random() - 0.5) * 10, e.y - 10 + (Math.random() - 0.5) * 10, amount >= 10 ? Math.round(amount) : amount.toFixed(1), '#f8fafc', 0.6, 11);
         if (e.hp > 0) return;
         e.alive = false;
         this.credits += e.reward;
         this.dirty = true;
-        this.addParticles(e.x, e.y, e.color, 15);
-        this.shakeTimer = Math.min(this.shakeTimer + 15, 40);
+        this.addParticles(e.x, e.y, e.color, e.type === 'boss' ? 50 : 15);
+        this.shakeTimer = Math.min(this.shakeTimer + (e.type === 'boss' ? 30 : 15), 60);
         this.emit('sound', 'explosion');
+
+        if (e.type === 'boss') {
+            for (let i = 0; i < BOSS_MINIONS.count; i++) {
+                const swarm = new Enemy({ hp: Math.round(e.maxHp * BOSS_MINIONS.hpFraction), speed: 1.9, reward: BOSS_MINIONS.reward, color: e.baseColor, type: 'swarm' }, this.path);
+                swarm.distance = Math.max(0, e.distance - (i * 12));
+                const p = this.path.pointAt(swarm.distance);
+                swarm.x = p.x;
+                swarm.y = p.y;
+                swarm.seg = p.seg;
+                this.enemies.push(swarm);
+            }
+            this.addText(e.x, e.y - 30, "BOSS DEFEATED!", '#facc15', 2, 20);
+        }
     }
 
     leak(e) {
         e.alive = false;
         this.leaked++;
-        this.lives = Math.max(0, this.lives - 1);
+        this.lives = Math.max(0, this.lives - (e.type === 'boss' ? BOSS_LEAK_COST : 1));
         this.dirty = true;
         this.emit('sound', 'leak');
         if (this.lives === 0) {
@@ -397,24 +495,25 @@ export class Game {
     finishWave() {
         this.projectiles = [];
         this.dirty = true;
-        if (this.wave >= this.waves.length) {
-            this.state = 'won';
-            this.emit('victory');
-            return;
-        }
 
-        // Between-wave payouts: clear bonus + Credit Fabricator income
         const bonus = waveClearBonus(this.wave);
         let income = 0;
         for (const t of this.towers) {
             if (!t.isGenerator) continue;
             income += t.genAmount;
-            this.addText(t.x, t.y - 20, `+${t.genAmount}¢`, t.color);
+            this.addText(t.x, t.y - 20, `+${t.genAmount}¢`, t.color, 1.5, 14);
         }
+
         this.credits += bonus + income;
         this.state = 'building';
         if (income > 0) this.emit('sound', 'generateCredit');
-        this.emit('waveEnd', { wave: this.wave, bonus, income });
+
+        if (this.wave === this.waves.length && !this.endless) {
+            this.state = 'won';
+            this.emit('victory');
+        } else {
+            this.emit('waveEnd', { wave: this.wave, bonus, income });
+        }
     }
 
     update(rawDt) {
@@ -466,8 +565,8 @@ export class Game {
         }
     }
 
-    addText(x, y, text, color) {
-        if (this.effects) this.floatingTexts.push({ x, y, text, color, life: 1 });
+    addText(x, y, text, color, life = 1, size = 16) {
+        if (this.effects) this.floatingTexts.push({ x, y, text, color, life, size });
     }
 
     addRing(x, y, radius, color) {

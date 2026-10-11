@@ -54,22 +54,23 @@ function polygon(ctx, sides, radius, step = 1) {
 }
 
 /** Draws a tower body (already translated + rotated). `withBarrel` is false for previews. */
-function drawTowerShape(ctx, shape, color, withBarrel) {
+function drawTowerShape(ctx, shape, color, withBarrel, recoil = 0) {
     ctx.fillStyle = '#1e293b';
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
+    const rx = recoil * -8;
     switch (shape) {
         case 'square':
             ctx.fillRect(-12, -12, 24, 24);
             ctx.strokeRect(-12, -12, 24, 24);
-            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(0, -4, 20, 8); }
+            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(rx, -4, 20, 8); }
             break;
         case 'diamond':
             ctx.beginPath();
             ctx.moveTo(15, 0); ctx.lineTo(0, 15); ctx.lineTo(-15, 0); ctx.lineTo(0, -15);
             ctx.closePath();
             ctx.fill(); ctx.stroke();
-            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(0, -2, 30, 4); }
+            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(rx, -2, 30, 4); }
             break;
         case 'circle':
             ctx.beginPath();
@@ -78,7 +79,7 @@ function drawTowerShape(ctx, shape, color, withBarrel) {
             if (withBarrel) {
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(10, 0, 5, 0, Math.PI * 2);
+                ctx.arc(10 + rx, 0, 5, 0, Math.PI * 2);
                 ctx.fill();
             }
             break;
@@ -91,7 +92,20 @@ function drawTowerShape(ctx, shape, color, withBarrel) {
         case 'hexagon':
             polygon(ctx, 6, 12);
             ctx.fill(); ctx.stroke();
-            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(0, -6, 20, 12); }
+            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(rx, -6, 20, 12); }
+            break;
+        case 'pentagon':
+            polygon(ctx, 5, 14);
+            ctx.fill(); ctx.stroke();
+            if (withBarrel) { ctx.fillStyle = color; ctx.fillRect(rx, -3, 20, 6); }
+            break;
+        case 'cross':
+            ctx.beginPath();
+            ctx.moveTo(-5, -15); ctx.lineTo(5, -15); ctx.lineTo(5, -5); ctx.lineTo(15, -5);
+            ctx.lineTo(15, 5); ctx.lineTo(5, 5); ctx.lineTo(5, 15); ctx.lineTo(-5, 15);
+            ctx.lineTo(-5, 5); ctx.lineTo(-15, 5); ctx.lineTo(-15, -5); ctx.lineTo(-5, -5);
+            ctx.closePath();
+            ctx.fill(); ctx.stroke();
             break;
         case 'star':
             polygon(ctx, 5, 15, 2);
@@ -123,9 +137,25 @@ function drawTower(ctx, t) {
     }
 
     ctx.rotate(t.angle);
+    
+    if (t.isLaser && t.isFiring && t.laserTarget) {
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        const d = Math.hypot(t.laserTarget.x - t.x, t.laserTarget.y - t.y);
+        ctx.lineTo(d, 0);
+        ctx.strokeStyle = t.color;
+        ctx.lineWidth = 4 + Math.random() * 2;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = t.color;
+        ctx.stroke();
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+    }
+
     ctx.shadowBlur = 15;
     ctx.shadowColor = t.color;
-    drawTowerShape(ctx, t.shape, t.color, true);
+    drawTowerShape(ctx, t.shape, t.color, true, t.recoil || 0);
     ctx.restore();
 }
 
@@ -146,6 +176,17 @@ function drawEnemy(ctx, e, game) {
     } else if (e.type === 'swarm') {
         ctx.beginPath();
         ctx.arc(0, 0, e.size, 0, Math.PI * 2);
+    } else if (e.type === 'boss') {
+        const t = performance.now() / 300;
+        ctx.rotate(t);
+        ctx.beginPath();
+        for (let i = 0; i < 16; i++) {
+            const a = i * Math.PI / 8;
+            const r = i % 2 === 0 ? e.size : e.size * 0.6;
+            if (i === 0) ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r);
+            else ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        }
+        ctx.closePath();
     } else {
         polygon(ctx, 6, e.size);
     }
@@ -153,9 +194,10 @@ function drawEnemy(ctx, e, game) {
 
     ctx.shadowBlur = 0;
     ctx.fillStyle = '#1e293b';
-    ctx.fillRect(-15, -20, 30, 4);
+    const barW = e.type === 'boss' ? 50 : 30;
+    ctx.fillRect(-barW / 2, -e.size - 10, barW, 4);
     ctx.fillStyle = '#22c55e';
-    ctx.fillRect(-15, -20, 30 * Math.max(0, e.hp / e.maxHp), 4);
+    ctx.fillRect(-barW / 2, -e.size - 10, barW * Math.max(0, e.hp / e.maxHp), 4);
     ctx.restore();
 }
 
@@ -207,7 +249,7 @@ function drawEffects(ctx, game) {
         ctx.save();
         ctx.globalAlpha = Math.max(0, t.life);
         ctx.fillStyle = t.color;
-        ctx.font = 'bold 16px Outfit';
+        ctx.font = `bold ${t.size}px Outfit`;
         ctx.textAlign = 'center';
         ctx.shadowBlur = 5;
         ctx.shadowColor = t.color;
@@ -236,7 +278,7 @@ function drawPlacementPreview(ctx, game, type, x, y) {
     ctx.shadowBlur = 10;
     ctx.shadowColor = color;
     ctx.rotate(-Math.PI / 2);
-    drawTowerShape(ctx, spec.shape, color, false);
+    drawTowerShape(ctx, spec.shape, color, false, 0);
     ctx.restore();
 }
 

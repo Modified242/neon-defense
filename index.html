@@ -15,7 +15,13 @@
           <div class="stat-box"><span class="label">Lives</span> <span id="lives-display">50</span></div>
           <div class="stat-box"><span class="label">Credits</span> <span id="credits-display">300</span></div>
           <div class="stat-box"><span class="label">Wave</span> <span id="wave-display">1</span></div>
-          <button id="fullscreen-btn" class="glow-btn" style="padding: 6px 12px; font-size: 0.8rem; margin-left: 10px;">⛶ Fullscreen</button>
+          <div class="controls-group" style="display: flex; align-items: center; gap: 8px; margin-left: 20px;">
+            <button id="pause-btn" class="glow-btn small-btn">⏸</button>
+            <button id="speed-1-btn" class="glow-btn small-btn speed-btn active-speed">1x</button>
+            <button id="speed-2-btn" class="glow-btn small-btn speed-btn">2x</button>
+            <button id="speed-3-btn" class="glow-btn small-btn speed-btn">3x</button>
+          </div>
+          <button id="fullscreen-btn" class="glow-btn small-btn" style="margin-left: auto;">⛶ Fullscreen</button>
         </div>
         <h1 class="title">NEON DEFENSE</h1>
         <button id="start-wave-btn" class="glow-btn">Start Wave</button>
@@ -26,14 +32,34 @@
             <canvas id="game-canvas" width="800" height="600"></canvas>
             
             <div id="level-select-screen" class="glass-panel">
-                <h2>SELECT SECTOR</h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0 40px; margin-top: -20px;">
+                    <div style="font-size: 1.2rem; color: #3b82f6; font-weight: bold;">
+                        Data Cores: <span id="data-cores-display">0</span>
+                    </div>
+                    <h2>SELECT SECTOR</h2>
+                    <button id="tech-lab-btn" class="glow-btn" style="background: linear-gradient(135deg, #10b981, #0ea5e9);">Tech Lab</button>
+                </div>
                 <div id="level-buttons" style="display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; margin-top: 30px;">
                     <!-- JS will populate these -->
                 </div>
             </div>
 
+            <div id="tech-tree-screen" class="hidden glass-panel" style="flex-direction: column; justify-content: flex-start; padding-top: 40px;">
+                <div style="display: flex; justify-content: space-between; width: 80%; max-width: 600px; margin-bottom: 20px;">
+                    <h2>TECH LAB</h2>
+                    <div style="font-size: 1.4rem; color: #3b82f6; font-weight: bold; align-self: center;">
+                        Cores: <span id="tech-cores-display">0</span>
+                    </div>
+                </div>
+                <div id="tech-list" style="display: flex; flex-direction: column; gap: 15px; width: 80%; max-width: 600px; overflow-y: auto; max-height: 400px; padding: 10px;">
+                    <!-- JS will populate -->
+                </div>
+                <button id="close-tech-btn" class="glow-btn" style="margin-top: 30px; background: linear-gradient(135deg, #475569, #1e293b);">Back</button>
+            </div>
+
             <div id="game-over-screen" class="hidden glass-panel">
                 <h2>SYSTEM FAILURE</h2>
+                <p id="game-over-detail" class="overlay-detail"></p>
                 <div style="display: flex; gap: 10px;">
                     <button id="restart-btn" class="glow-btn">Reboot System</button>
                     <button id="fail-menu-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b);">Menu</button>
@@ -42,6 +68,7 @@
             <div id="victory-screen" class="hidden glass-panel">
                 <h2>DEFENSE SUCCESSFUL</h2>
                 <div style="display: flex; gap: 10px;">
+                    <button id="endless-btn" class="glow-btn" style="background: linear-gradient(135deg, #10b981, #047857);">Endless</button>
                     <button id="next-level-btn" class="glow-btn">Next Level</button>
                     <button id="win-menu-btn" class="glow-btn" style="background: linear-gradient(135deg, #475569, #1e293b);">Menu</button>
                 </div>
@@ -86,6 +113,20 @@
                   <span class="tower-cost">200 ¢</span>
                 </div>
               </button>
+              <button class="tower-btn" data-type="laser" data-cost="180">
+                <div class="tower-icon laser-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Ion Beam</span>
+                  <span class="tower-cost">180 ¢</span>
+                </div>
+              </button>
+              <button class="tower-btn" data-type="support" data-cost="250">
+                <div class="tower-icon support-icon"></div>
+                <div class="tower-info">
+                  <span class="tower-name">Overclock Node</span>
+                  <span class="tower-cost">250 ¢</span>
+                </div>
+              </button>
               <button class="tower-btn" data-type="generator" data-cost="150">
                 <div class="tower-icon generator-icon"></div>
                 <div class="tower-info">
@@ -94,7 +135,7 @@
                 </div>
               </button>
             </div>
-            <div class="instructions">
+            <div id="preview-panel" class="instructions" style="min-height: 140px;">
               <p>Select a tower and click on the grid to place it.</p>
               <p>Don't let the neon shapes reach the end!</p>
             </div>
