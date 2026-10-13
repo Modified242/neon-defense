@@ -5,6 +5,9 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Disable hardware acceleration to resolve GPU / NVIDIA driver crashes (e.g., 0xa896000 / DXGI hangs)
+app.disableHardwareAcceleration();
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 1150,
@@ -28,6 +31,12 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+app.on('child-process-gone', (event, details) => {
+  if (details.type === 'GPU') {
+    console.warn(`GPU process exited (${details.reason}): continuing on software renderer.`);
+  }
 });
 
 app.on('window-all-closed', () => {

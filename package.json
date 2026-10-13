@@ -8,6 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "prestart": "vite build",
     "start": "electron .",
     "pack:mac": "vite build && electron-builder --mac"
   },
